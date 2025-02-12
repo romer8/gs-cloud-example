@@ -3,7 +3,9 @@
 Some steps to reproduce the error
 
 
-## Installation
+## Steps
+
+#### Problem 1
 
 1. Clone the GeoServer Cloud repository:
     ```bash
@@ -15,35 +17,62 @@ Some steps to reproduce the error
     ```
 3. Clone this repo:
     ```bash
-    git clone
+    git clone https://github.com/romer8/gs-cloud-example.git
     ```
-    or
+
+4. Run the `generate_data.sh` file. This will create a table on the `postgis` database called `cities`, and it will insert two records. It will use the `gscloud_dev_pgconfig-postgis-1` running image:
+
     ```bash
-    pip install -r requirements.txt
+    ./generate_data.sh
+    ```
+5. Get the IP of the postgis container. We will be using the postgis container that was spin by the `pgconfig.sh` script :
+    ```bash
+    docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' gscloud_dev_pgconfig-postgis-1
     ```
 
-## Usage
+6. Run the `first_problem.py` python file. This will create a workspace and a datastore:
 
-Provide instructions and examples for using your project. For example:
-```bash
-npm start
-```
+    ```bash
+    python first_problem.py --host <your_ip>  # Replace with your desired IP
+    ```
+7. You need to create the `SQL` view manually with the following:
 
-## Contributing
+    - sql statement:
+        ```sql
+            SELECT 
+                id,
+            name,
+                geom 
+            FROM 
+                cities
+            WHERE 
+                id = %id%
+        ```
 
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+ 
+    - SQL view parameters:
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+        """
+        **name**: id
+        **Default value** : 1
+        **Validation regular expression** : ^[0-9]+$
+        """ 
 
-## License
+    - Press **Guess geometry type and srid** for the Attributes.
 
-Distributed under the MIT License. See `LICENSE` for more information.
+8. Once saved, go to layer preview. You should be able to see the error about the special character: "%"
+9. if you come back to the layer and edit the `sql view` and save it, the error will return after you do a new request.
 
-## Acknowledgments
+#### Problem 2
 
-- [GitHub Copilot](https://copilot.github.com)
-- Other contributors and resources
+1. Get the IP of the postgis container. We will be using the postgis container that was spin by the `pgconfig.sh` script :
+    ```bash
+    docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' gscloud_dev_pgconfig-postgis-1
+    ```
+
+2. Run the `second_problem.py` python file. This will create a workspace,a datastore, and a `sql` view:
+
+    ```bash
+    python second_problem.py --host <your_ip>  # Replace with your desired IP
+    ```
+3. Once saved, go to layer preview. Choose `GeoJSON` for the `WMF` service, You should be able to see that the layer has 0 feature. If you try a `WMS` service it will show an empty white square.

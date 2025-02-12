@@ -1,6 +1,6 @@
 import requests
 import json
-
+import argparse 
 # Replace these values with those appropriate for your GeoServer (or GeoServer Cloud) instance
 GEOSERVER_URL = "http://localhost:9090/geoserver/cloud"
 USERNAME = "admin"
@@ -169,23 +169,25 @@ WHERE
 
 
 if __name__ == "__main__":
+    # Set up command-line arguments
+    parser = argparse.ArgumentParser(description="GeoServer configuration script")
+    parser.add_argument("--host", type=str, default="172.18.0.5", 
+                      help="PostGIS database host IP address")
+    args = parser.parse_args()
+
     workspace_name = "test_view"
     store_name = "test_view_datastore"
     view_name = "cities_sql_view"
 
-    # Database connection details
-    host = "172.18.0.5"
+    # Database connection details (now using command-line argument for host)
+    host = args.host  # This line changed
     port = "5432"
     database = "postgis"
     schema = "public"
     user = "postgis"
     passwd = "postgis"
     
-    # 1) Create the workspace
+    # Execution flow remains the same
     create_workspace(workspace_name)
-    
-    # 2) Create the PostGIS data store
     create_postgis_store(workspace_name, store_name, host, port, database, schema, user, passwd)
-
-    # 2) Create SQL view
     create_sql_view_via_featuretype(workspace_name, store_name, view_name)
