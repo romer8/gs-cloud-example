@@ -51,12 +51,10 @@ Some steps to reproduce the error
 
  
     - SQL view parameters:
-
-        """
-        **name**: id
-        **Default value** : 1
-        **Validation regular expression** : ^[0-9]+$
-        """ 
+        - **name**: id
+        - **Default value** : 1
+        - **Validation regular expression** : ^[0-9]+$
+        
 
     - Press **Guess geometry type and srid** for the Attributes.
 
