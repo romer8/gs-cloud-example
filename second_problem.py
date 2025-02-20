@@ -1,18 +1,15 @@
+import argparse
 import requests
 import json
-import argparse 
-# Replace these values with those appropriate for your GeoServer (or GeoServer Cloud) instance
-GEOSERVER_URL = "http://localhost:9090/geoserver/cloud"
+
+# Default credentials
 USERNAME = "admin"
 PASSWORD = "geoserver"
 
-# 1) Create a new workspace named `test_view` with the namespace URI also called `test_view`
-def create_workspace(workspace_name):
-    url = f"{GEOSERVER_URL}/rest/workspaces"
+def create_workspace(geoserver_url, workspace_name):
+    url = f"{geoserver_url}/rest/workspaces"
     headers = {"Content-Type": "application/json"}
     
-    # This JSON structure aligns with the GeoServer REST API for creating a workspace.
-    # You can also specify a different namespace URI by adjusting the 'uri' field.
     payload = {
         "workspace": {
             "name": workspace_name
@@ -34,12 +31,10 @@ def create_workspace(workspace_name):
         print("Response content:", response.text)
 
 
-# 2) Create a PostGIS data store in the new workspace
-def create_postgis_store(workspace_name, store_name, host, port, database, schema, user, passwd):
-    url = f"{GEOSERVER_URL}/rest/workspaces/{workspace_name}/datastores"
+def create_postgis_store(geoserver_url, workspace_name, store_name, host, port, database, schema, user, passwd):
+    url = f"{geoserver_url}/rest/workspaces/{workspace_name}/datastores"
     headers = {"Content-Type": "application/json"}
     
-    # Connection parameters for a PostGIS store
     payload = {
         "dataStore": {
             "name": store_name,
@@ -51,7 +46,6 @@ def create_postgis_store(workspace_name, store_name, host, port, database, schem
                 "schema": schema,
                 "user": user,
                 "passwd": passwd,
-                # This is mandatory to specify that we are using a PostGIS database
                 "dbtype": "postgis"
             }
         }
@@ -71,15 +65,14 @@ def create_postgis_store(workspace_name, store_name, host, port, database, schem
         print("Response content:", response.text)
 
 
-def create_sql_view_via_featuretype(workspace_name, datastore_name, view_name):
+def create_sql_view_via_featuretype(geoserver_url, workspace_name, datastore_name, view_name):
     """
     Creates a SQL Parametric View (Virtual Table) by defining a new FeatureType
     in GeoServer. Includes 'attributes' so the server knows the schema.
     """
-    url = f"{GEOSERVER_URL}/rest/workspaces/{workspace_name}/datastores/{datastore_name}/featuretypes"
+    url = f"{geoserver_url}/rest/workspaces/{workspace_name}/datastores/{datastore_name}/featuretypes"
     headers = {"Content-Type": "application/json"}
 
-    # Define the SQL, parameters, geometry, etc.
     sql_statement = """
 SELECT
   id,
@@ -96,7 +89,6 @@ WHERE
             "enabled": True,
             "store": {
                 "@class": "dataStore",
-                # Must be "<workspace>:<datastore_name>" 
                 "name": f"{workspace_name}:{datastore_name}"
             },
             "name": view_name,
@@ -122,7 +114,6 @@ WHERE
                     ]
                 }
             },
-            # Explicitly declare your schema columns:
             "attributes": {
                 "attribute": [
                     {
@@ -141,8 +132,6 @@ WHERE
                     },
                     {
                         "name": "geom",
-                        # For older versions of GeoServer (pre-2.16), use:
-                        # "binding": "com.vividsolutions.jts.geom.Point"
                         "binding": "org.locationtech.jts.geom.Point",
                         "minOccurs": 0,
                         "maxOccurs": 1,
@@ -169,25 +158,37 @@ WHERE
 
 
 if __name__ == "__main__":
-    # Set up command-line arguments
     parser = argparse.ArgumentParser(description="GeoServer configuration script")
-    parser.add_argument("--host", type=str, default="172.18.0.5", 
-                      help="PostGIS database host IP address")
+
+    # New argument for GeoServer URL
+    parser.add_argument("--geoserver-url",
+                        type=str,
+                        default="http://localhost:9090/geoserver/cloud",
+                        help="GeoServer base URL (default: http://localhost:9090/geoserver/cloud)")
+
+    parser.add_argument("--host", 
+                        type=str, 
+                        default="172.18.0.5", 
+                        help="PostGIS database host IP address (default: 172.18.0.5)")
+
     args = parser.parse_args()
 
+    # Retrieve arguments
+    geoserver_url = args.geoserver_url
+    host = args.host
+
+    # Fixed or hard-coded variables (adjust as needed)
     workspace_name = "test_view"
     store_name = "test_view_datastore"
     view_name = "cities_sql_view"
 
-    # Database connection details (now using command-line argument for host)
-    host = args.host  # This line changed
     port = "5432"
     database = "postgis"
     schema = "public"
     user = "postgis"
     passwd = "postgis"
     
-    # Execution flow remains the same
-    create_workspace(workspace_name)
-    create_postgis_store(workspace_name, store_name, host, port, database, schema, user, passwd)
-    create_sql_view_via_featuretype(workspace_name, store_name, view_name)
+    # Execution flow
+    create_workspace(geoserver_url, workspace_name)
+    create_postgis_store(geoserver_url, workspace_name, store_name, host, port, database, schema, user, passwd)
+    create_sql_view_via_featuretype(geoserver_url, workspace_name, store_name, view_name)

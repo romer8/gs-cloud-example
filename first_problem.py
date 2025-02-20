@@ -2,23 +2,19 @@ import argparse
 import requests
 import json
 
-# Replace these values with those appropriate for your GeoServer (or GeoServer Cloud) instance
-GEOSERVER_URL = "http://localhost:9090/geoserver/cloud"
 USERNAME = "admin"
 PASSWORD = "geoserver"
 
-# 1) Create a new workspace named `test_view` with the namespace URI also called `test_view`
-def create_workspace(workspace_name):
-    url = f"{GEOSERVER_URL}/rest/workspaces"
+def create_workspace(geoserver_url, workspace_name):
+    url = f"{geoserver_url}/rest/workspaces"
     headers = {"Content-Type": "application/json"}
     
-    # This JSON structure aligns with the GeoServer REST API for creating a workspace.
-    # You can also specify a different namespace URI by adjusting the 'uri' field.
     payload = {
         "workspace": {
             "name": workspace_name
         }
     }
+    
     response = requests.post(
         url,
         data=json.dumps(payload),
@@ -34,13 +30,10 @@ def create_workspace(workspace_name):
         print(f"Failed to create workspace '{workspace_name}'. Status code: {response.status_code}")
         print("Response content:", response.text)
 
-
-# 2) Create a PostGIS data store in the new workspace
-def create_postgis_store(workspace_name, store_name, host, port, database, schema, user, passwd):
-    url = f"{GEOSERVER_URL}/rest/workspaces/{workspace_name}/datastores"
+def create_postgis_store(geoserver_url, workspace_name, store_name, host, port, database, schema, user, passwd):
+    url = f"{geoserver_url}/rest/workspaces/{workspace_name}/datastores"
     headers = {"Content-Type": "application/json"}
     
-    # Connection parameters for a PostGIS store
     payload = {
         "dataStore": {
             "name": store_name,
@@ -52,12 +45,11 @@ def create_postgis_store(workspace_name, store_name, host, port, database, schem
                 "schema": schema,
                 "user": user,
                 "passwd": passwd,
-                # This is mandatory to specify that we are using a PostGIS database
                 "dbtype": "postgis"
             }
         }
     }
-
+    
     response = requests.post(
         url,
         data=json.dumps(payload),
@@ -71,23 +63,27 @@ def create_postgis_store(workspace_name, store_name, host, port, database, schem
         print(f"Failed to create store '{store_name}'. Status code: {response.status_code}")
         print("Response content:", response.text)
 
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create GeoServer workspace and PostGIS store.")
+    parser.add_argument("--geoserver-url", type=str, default="http://localhost:9090/geoserver/cloud",
+                        help="Base URL for the GeoServer instance")
     parser.add_argument("--host", type=str, default="172.18.0.5", help="PostGIS database host IP")
+    
     args = parser.parse_args()
-
+    
+    geoserver_url = args.geoserver_url
+    host = args.host
+    
+    # Modify these as needed
     workspace_name = "test_view1"
     store_name = "test_view_datastore1"
-
+    
     # Database connection details
-    host = args.host  # Get host from command line
     port = "5432"
     database = "postgis"
     schema = "public"
     user = "postgis"
     passwd = "postgis"
     
-    create_workspace(workspace_name)
-    create_postgis_store(workspace_name, store_name, host, port, database, schema, user, passwd)
+    create_workspace(geoserver_url, workspace_name)
+    create_postgis_store(geoserver_url, workspace_name, store_name, host, port, database, schema, user, passwd)
